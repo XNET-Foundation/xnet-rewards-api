@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import path from 'path';
+import { sheets_v4 } from 'googleapis';
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 
@@ -24,15 +25,18 @@ console.log('Sheet configuration:', {
   currentWorkingDirectory: process.cwd(),
 });
 
-export async function fetchRewardsSheet() {
+export interface DeviceData {
+  'MAC Address': string;
+  [key: string]: string;
+}
+
+export async function fetchRewardsSheet(): Promise<DeviceData[]> {
   try {
     console.log('Fetching service account details...');
     const client = await auth.getClient();
     const credentials = await auth.getCredentials();
     console.log('Service account details:', {
       email: credentials.client_email,
-      type: credentials.type,
-      projectId: credentials.project_id,
     });
 
     // First, get the sheet metadata to verify access
@@ -55,23 +59,24 @@ export async function fetchRewardsSheet() {
       sheet => sheet.properties?.sheetId?.toString() === SHEET_GID
     );
 
-    if (!targetSheet) {
+    if (!targetSheet?.properties?.title) {
       throw new Error(`Sheet with GID ${SHEET_GID} not found`);
     }
 
     console.log('Found target sheet:', {
-      title: targetSheet.properties?.title,
-      gid: targetSheet.properties?.sheetId,
-      rowCount: targetSheet.properties?.gridProperties?.rowCount,
-      columnCount: targetSheet.properties?.gridProperties?.columnCount,
+      title: targetSheet.properties.title,
+      gid: targetSheet.properties.sheetId,
+      rowCount: targetSheet.properties.gridProperties?.rowCount,
+      columnCount: targetSheet.properties.gridProperties?.columnCount,
     });
 
     console.log('Attempting to fetch sheet data...');
-    const { data } = await sheets.spreadsheets.values.get({
+    const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: targetSheet.properties?.title,
+      range: targetSheet.properties.title,
     });
 
+    const data = response.data;
     console.log('Sheet data response:', {
       hasValues: !!data.values,
       rowCount: data.values?.length,
@@ -80,9 +85,9 @@ export async function fetchRewardsSheet() {
 
     const [headers, ...rows] = data.values || [];
 
-    return rows.map((row) => {
-      const obj: Record<string, string> = {};
-      headers.forEach((h, i) => {
+    return rows.map((row: any[]) => {
+      const obj: DeviceData = { 'MAC Address': '' };
+      headers.forEach((h: string, i: number) => {
         obj[h.trim()] = row[i]?.trim() || '';
       });
       return obj;
@@ -101,19 +106,6 @@ export async function fetchRewardsSheet() {
         sheetGid: SHEET_GID,
       }
     });
-
-    // Try to get more auth details in case of failure
-    try {
-      const tokenInfo = await auth.getTokenInfo(
-        (await auth.getClient().getAccessToken()).token || ''
-      );
-      console.log('Token info:', {
-        scopes: tokenInfo.scopes,
-        expiryDate: tokenInfo.expiry_date,
-      });
-    } catch (tokenError) {
-      console.error('Failed to get token info:', tokenError);
-    }
 
     throw error;
   }

@@ -1,4 +1,4 @@
-import { fetchRewardsSheet } from '@/utils/sheet';
+import { fetchRewardsSheet, DeviceData } from '@/utils/sheet';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

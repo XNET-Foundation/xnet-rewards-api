@@ -1,9 +1,4 @@
-import { fetchRewardsSheet } from '@/utils/sheet';
-
-interface DeviceData {
-  'MAC Address': string;
-  [key: string]: string;
-}
+import { fetchRewardsSheet, DeviceData } from '@/utils/sheet';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -14,7 +9,7 @@ export async function GET(req: Request) {
   if (!epoch) return new Response('Missing epoch', { status: 400 });
 
   const data = await fetchRewardsSheet();
-  const device = data.find((d: DeviceData) => d['MAC Address'] === mac);
+  const device = data.find((d) => d['MAC Address'] === mac);
   if (!device) return new Response('Device not found', { status: 404 });
 
   const key = `Epoch ${epoch}`;
