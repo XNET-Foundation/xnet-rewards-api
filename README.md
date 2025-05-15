@@ -1,20 +1,19 @@
-# 📡 XNET Rewards API
+# XNET Rewards API
 
-This is a simple API built with **Next.js (App Router)** and hosted on **Vercel**, designed to serve token reward data for XNET devices based on a live **Google Sheet**.
+This is a simple API built with **Next.js (App Router)** , designed to serve token reward data for XNET devices based on post-epoch data.
 
 ---
 
-## 🚀 Features
+## Features
 
 - Query device rewards by MAC address and epoch
 - Supports full reward history or aggregation over recent epochs
-- Live connection to Google Sheets — no manual syncing required
+- Live connection to rewards sheets — no manual syncing required
 - Built with TypeScript + Google Sheets API
-- Fast deployment on Vercel
 
 ---
 
-## 📁 Folder Structure
+##  Folder Structure
 
 ```
 src/
@@ -31,7 +30,7 @@ src/
 
 ---
 
-## 🔧 Setup Instructions
+## Setup Instructions
 
 ### 1. Clone the repo
 
@@ -52,10 +51,9 @@ Create a `.env` file in the root:
 
 ```
 GOOGLE_SHEET_ID=your-google-sheet-id
-GOOGLE_CREDENTIALS_JSON='PASTE_YOUR_SERVICE_ACCOUNT_JSON_HERE'
+GOOGLE_CREDENTIALS_JSON='secrets/gkey.json'
 ```
 
-> 📌 If the JSON is multiline, you may need to base64 encode it and decode in `sheet.ts`.
 
 ### 4. Verify Google Sheets Access
 
@@ -80,7 +78,7 @@ Make sure your Google Sheet is **shared with the service account email** that ap
 
 ---
 
-## 🧠 API Endpoints
+## API Endpoints
 
 ### 1. Aggregate Last X Epochs
 
@@ -124,26 +122,9 @@ GET /api/rewards/history?mac=MAC_ADDRESS
 
 ---
 
-## 📦 Deploy on Vercel
-
-1. Push to GitHub
-2. Go to [vercel.com](https://vercel.com), import your repo
-3. Set up environment variables:
-   - `GOOGLE_SHEET_ID`
-   - `GOOGLE_CREDENTIALS_JSON`
-4. Click Deploy 🎉
-
----
-
-## ✅ Live Demo
+## Live Demo
 
 Example:
 ```
-https://your-vercel-app.vercel.app/api/rewards/aggregate?mac=48bf74221270&epochs=3
+https://domain.com/api/rewards/aggregate?mac=48bf74221270&epochs=3
 ```
-
----
-
-## 📄 License
-
-MIT — use freely, attribute if you love it 💛
