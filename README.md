@@ -1,36 +1,132 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📡 XNET Rewards API
 
-## Getting Started
+This is a simple API built with **Next.js (App Router)** and hosted on **Vercel**, designed to serve token reward data for XNET devices based on a live **Google Sheet**.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🚀 Features
+
+- Query device rewards by MAC address and epoch
+- Supports full reward history or aggregation over recent epochs
+- Live connection to Google Sheets — no manual syncing required
+- Built with TypeScript + Google Sheets API
+- Fast deployment on Vercel
+
+---
+
+## 📁 Folder Structure
+
+```
+src/
+├── app/
+│   └── api/
+│       └── rewards/
+│           ├── aggregate/route.ts
+│           ├── epoch/route.ts
+│           └── history/route.ts
+└── utils/
+    └── sheet.ts
+.env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🔧 Setup Instructions
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1. Clone the repo
 
-## Learn More
+```bash
+git clone https://github.com/your-username/xnet-rewards-api.git
+cd xnet-rewards-api
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 2. Install dependencies
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm install
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 3. Set environment variables
 
-## Deploy on Vercel
+Create a `.env` file in the root:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+GOOGLE_SHEET_ID=your-google-sheet-id
+GOOGLE_CREDENTIALS_JSON='PASTE_YOUR_SERVICE_ACCOUNT_JSON_HERE'
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> 📌 If the JSON is multiline, you may need to base64 encode it and decode in `sheet.ts`.
+
+### 4. Share your sheet
+
+Make sure your Google Sheet is **shared with the service account email** that appears in your JSON credentials file (Viewer access is enough).
+
+---
+
+## 🧠 API Endpoints
+
+### 1. Aggregate Last X Epochs
+
+```
+GET /api/rewards/aggregate?mac=MAC_ADDRESS&epochs=N
+```
+
+**Example:**
+
+```
+/api/rewards/aggregate?mac=48bf74221270&epochs=4
+```
+
+---
+
+### 2. Specific Epoch Reward
+
+```
+GET /api/rewards/epoch?mac=MAC_ADDRESS&epoch=EPOCH_NUMBER
+```
+
+**Example:**
+
+```
+/api/rewards/epoch?mac=48bf74221270&epoch=63
+```
+
+---
+
+### 3. Full History
+
+```
+GET /api/rewards/history?mac=MAC_ADDRESS
+```
+
+**Example:**
+
+```
+/api/rewards/history?mac=48bf74221270
+```
+
+---
+
+## 📦 Deploy on Vercel
+
+1. Push to GitHub
+2. Go to [vercel.com](https://vercel.com), import your repo
+3. Set up environment variables:
+   - `GOOGLE_SHEET_ID`
+   - `GOOGLE_CREDENTIALS_JSON`
+4. Click Deploy 🎉
+
+---
+
+## ✅ Live Demo
+
+Example:
+```
+https://your-vercel-app.vercel.app/api/rewards/aggregate?mac=48bf74221270&epochs=3
+```
+
+---
+
+## 📄 License
+
+MIT — use freely, attribute if you love it 💛
