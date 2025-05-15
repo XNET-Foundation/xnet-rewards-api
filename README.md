@@ -57,7 +57,24 @@ GOOGLE_CREDENTIALS_JSON='PASTE_YOUR_SERVICE_ACCOUNT_JSON_HERE'
 
 > 📌 If the JSON is multiline, you may need to base64 encode it and decode in `sheet.ts`.
 
-### 4. Share your sheet
+### 4. Verify Google Sheets Access
+
+Run the verification script to check if your Google Sheets setup is working correctly:
+
+```bash
+npx ts-node scripts/verify-sheets-access.ts
+```
+
+This script will:
+- Verify your credentials file exists and is valid
+- Check if environment variables are set correctly
+- Test connection to Google Sheets API
+- Display available sheets and their GIDs
+- Attempt to read sample data
+
+If you encounter any issues, the script will provide detailed error information to help troubleshoot.
+
+### 5. Share your sheet
 
 Make sure your Google Sheet is **shared with the service account email** that appears in your JSON credentials file (Viewer access is enough).
 
