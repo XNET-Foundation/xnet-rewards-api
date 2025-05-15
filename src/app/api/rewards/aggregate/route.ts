@@ -1,5 +1,10 @@
 import { fetchRewardsSheet } from '@/utils/sheet';
 
+interface DeviceData {
+  'MAC Address': string;
+  [key: string]: string | number;
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const mac = searchParams.get('mac');
@@ -9,7 +14,7 @@ export async function GET(req: Request) {
 
   const data = await fetchRewardsSheet();
 
-  const device = data.find((d) => d['MAC Address'] === mac);
+  const device = data.find((d: DeviceData) => d['MAC Address'] === mac);
   if (!device) return new Response('Device not found', { status: 404 });
 
   const epochKeys = Object.keys(device)
@@ -18,7 +23,7 @@ export async function GET(req: Request) {
     .slice(-epochs);
 
   const total = epochKeys.reduce((sum, key) => {
-    const val = parseFloat(device[key] || '0');
+    const val = parseFloat(device[key]?.toString() || '0');
     return sum + (isNaN(val) ? 0 : val);
   }, 0);
 
