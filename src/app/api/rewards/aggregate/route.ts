@@ -1,4 +1,5 @@
 import { fetchRewardsSheet, DeviceData } from '@/utils/sheet';
+import { getCurrentEpoch, getRecentEpochs } from '@/utils/epoch';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -11,10 +12,11 @@ export async function GET(req: Request) {
   const device = data.find((d) => d['MAC Address'] === mac);
   if (!device) return new Response('Device not found', { status: 404 });
 
-  const epochKeys = Object.keys(device)
-    .filter((k) => k.includes('Epoch'))
-    .sort((a, b) => parseInt(a.split(' ')[1]) - parseInt(b.split(' ')[1]))
-    .slice(-epochs);
+  // Get the list of recent epochs to aggregate
+  const recentEpochs = getRecentEpochs(epochs);
+  
+  // Create epoch keys in the format "Epoch X"
+  const epochKeys = recentEpochs.map(ep => `Epoch ${ep}`);
 
   const total = epochKeys.reduce((sum, key) => {
     const numericValue = parseFloat(device[key] || '0');
@@ -23,6 +25,7 @@ export async function GET(req: Request) {
 
   return Response.json({
     mac,
+    current_epoch: getCurrentEpoch(),
     epochs: epochKeys,
     total_rewards: total
   });
