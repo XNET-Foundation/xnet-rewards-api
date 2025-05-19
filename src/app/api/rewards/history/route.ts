@@ -1,5 +1,10 @@
 import { fetchRewardsSheet, DeviceData } from '@/utils/sheet';
-import { getCurrentEpoch } from '@/utils/epoch';
+import { getCurrentEpoch, getEpochEndDate } from '@/utils/epoch';
+
+interface EpochHistory {
+  rewards: number;
+  distribution_date: string;
+}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -10,7 +15,7 @@ export async function GET(req: Request) {
   const device = data.find((d) => d['MAC Address'] === mac);
   if (!device) return new Response('Device not found', { status: 404 });
 
-  const history: Record<string, number> = {};
+  const history: Record<string, EpochHistory> = {};
   const currentEpoch = getCurrentEpoch();
 
   for (const [key, value] of Object.entries(device)) {
@@ -19,7 +24,11 @@ export async function GET(req: Request) {
       // Only include epochs up to the current epoch
       if (epochNum < currentEpoch) {
         const numericValue = parseFloat(value);
-        history[key] = isNaN(numericValue) ? 0 : numericValue;
+        const distributionDate = getEpochEndDate(epochNum);
+        history[key] = {
+          rewards: isNaN(numericValue) ? 0 : numericValue,
+          distribution_date: distributionDate.toISOString().split('T')[0]
+        };
       }
     }
   }
