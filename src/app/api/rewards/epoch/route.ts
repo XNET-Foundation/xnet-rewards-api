@@ -13,12 +13,13 @@ export async function GET(req: Request) {
   if (!device) return new Response('Device not found', { status: 404 });
 
   const key = `Epoch ${epoch}`;
-  const value = device[key] || '0';
+  const rawValue = device[key] || '0';
+  const numericValue = parseFloat(rawValue);
 
   return Response.json({
     mac,
     epoch,
-    rewards: value,
+    rewards: numericValue
   });
 }
 

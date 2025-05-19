@@ -13,8 +13,8 @@ export async function GET(req: Request) {
 
   for (const [key, value] of Object.entries(device)) {
     if (key.includes('Epoch')) {
-      const val = parseFloat(value);
-      history[key] = isNaN(val) ? 0 : val;
+      const numericValue = parseFloat(value);
+      history[key] = isNaN(numericValue) ? 0 : numericValue;
     }
   }
 

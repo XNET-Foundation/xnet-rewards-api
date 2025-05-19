@@ -30,6 +30,13 @@ export interface DeviceData {
   [key: string]: string;
 }
 
+// Helper function to clean number strings
+function cleanNumberString(value: string): string {
+  if (!value) return '0';
+  // Remove commas and trim whitespace
+  return value.replace(/,/g, '').trim();
+}
+
 export async function fetchRewardsSheet(): Promise<DeviceData[]> {
   try {
     console.log('Fetching service account details...');
@@ -88,7 +95,9 @@ export async function fetchRewardsSheet(): Promise<DeviceData[]> {
     return rows.map((row: any[]) => {
       const obj: DeviceData = { 'MAC Address': '' };
       headers.forEach((h: string, i: number) => {
-        obj[h.trim()] = row[i]?.trim() || '';
+        const value = row[i]?.trim() || '';
+        // Clean numbers if the header contains 'Epoch'
+        obj[h.trim()] = h.includes('Epoch') ? cleanNumberString(value) : value;
       });
       return obj;
     });

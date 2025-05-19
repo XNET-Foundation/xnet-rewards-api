@@ -17,13 +17,13 @@ export async function GET(req: Request) {
     .slice(-epochs);
 
   const total = epochKeys.reduce((sum, key) => {
-    const val = parseFloat(device[key] || '0');
-    return sum + (isNaN(val) ? 0 : val);
+    const numericValue = parseFloat(device[key] || '0');
+    return sum + (isNaN(numericValue) ? 0 : numericValue);
   }, 0);
 
   return Response.json({
     mac,
     epochs: epochKeys,
-    total_rewards: total,
+    total_rewards: total
   });
 }
