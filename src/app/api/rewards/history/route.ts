@@ -1,8 +1,11 @@
-import { fetchRewardsSheet, DeviceData } from '@/utils/sheet';
+import { fetchDataRewardsSheet, fetchBonusRewardsSheet, fetchPocRewardsSheet, DeviceData } from '@/utils/sheet';
 import { getCurrentEpoch, getEpochEndDate } from '@/utils/epoch';
 
 interface EpochHistory {
-  rewards: number;
+  data_rewards: number;
+  bonus_rewards: number;
+  poc_rewards: number;
+  total_rewards: number;
   distribution_date: string;
 }
 
@@ -12,18 +15,25 @@ interface DeviceHistoryResponse {
   history: Record<string, EpochHistory>;
 }
 
-function processDeviceHistory(device: DeviceData, currentEpoch: number): Record<string, EpochHistory> {
+function processDeviceHistory(dataDevice: DeviceData, bonusDevice: DeviceData | undefined, pocDevice: DeviceData | undefined, currentEpoch: number): Record<string, EpochHistory> {
   const history: Record<string, EpochHistory> = {};
 
-  for (const [key, value] of Object.entries(device)) {
+  for (const [key, value] of Object.entries(dataDevice)) {
     if (key.includes('Epoch')) {
       const epochNum = parseInt(key.split(' ')[1]);
       // Only include epochs up to the current epoch
       if (epochNum < currentEpoch) {
-        const numericValue = parseFloat(value);
+        const dataRewards = parseFloat(value) || 0;
+        const bonusRewards = parseFloat(bonusDevice?.[key] || '0') || 0;
+        const pocRewards = parseFloat(pocDevice?.[key] || '0') || 0;
+        const totalRewards = dataRewards + bonusRewards + pocRewards;
         const distributionDate = getEpochEndDate(epochNum);
+        
         history[key] = {
-          rewards: isNaN(numericValue) ? 0 : numericValue,
+          data_rewards: dataRewards,
+          bonus_rewards: bonusRewards,
+          poc_rewards: pocRewards,
+          total_rewards: totalRewards,
           distribution_date: distributionDate.toISOString().split('T')[0]
         };
       }
@@ -42,15 +52,24 @@ export async function GET(req: Request) {
   const macAddresses = macParam.split(',').map(mac => mac.trim()).filter(mac => mac.length > 0);
   if (macAddresses.length === 0) return new Response('Invalid MAC address(es)', { status: 400 });
 
-  const data = await fetchRewardsSheet();
+  // Fetch all three reward types
+  const [dataRewards, bonusRewards, pocRewards] = await Promise.all([
+    fetchDataRewardsSheet(),
+    fetchBonusRewardsSheet(),
+    fetchPocRewardsSheet()
+  ]);
+  
   const currentEpoch = getCurrentEpoch();
 
   // Handle single MAC address (maintain existing behavior)
   if (macAddresses.length === 1) {
-    const device = data.find((d) => d['MAC Address'] === macAddresses[0]);
-    if (!device) return new Response('Device not found', { status: 404 });
+    const dataDevice = dataRewards.find((d) => d['MAC Address'] === macAddresses[0]);
+    const bonusDevice = bonusRewards.find((d) => d['MAC Address'] === macAddresses[0]);
+    const pocDevice = pocRewards.find((d) => d['MAC Address'] === macAddresses[0]);
+    
+    if (!dataDevice) return new Response('Device not found', { status: 404 });
 
-    const history = processDeviceHistory(device, currentEpoch);
+    const history = processDeviceHistory(dataDevice, bonusDevice, pocDevice, currentEpoch);
 
     return Response.json({ 
       mac: macAddresses[0], 
@@ -64,13 +83,16 @@ export async function GET(req: Request) {
   const notFoundMacs: string[] = [];
 
   for (const mac of macAddresses) {
-    const device = data.find((d) => d['MAC Address'] === mac);
-    if (!device) {
+    const dataDevice = dataRewards.find((d) => d['MAC Address'] === mac);
+    const bonusDevice = bonusRewards.find((d) => d['MAC Address'] === mac);
+    const pocDevice = pocRewards.find((d) => d['MAC Address'] === mac);
+    
+    if (!dataDevice) {
       notFoundMacs.push(mac);
       continue;
     }
 
-    const history = processDeviceHistory(device, currentEpoch);
+    const history = processDeviceHistory(dataDevice, bonusDevice, pocDevice, currentEpoch);
     results.push({
       mac,
       current_epoch: currentEpoch,

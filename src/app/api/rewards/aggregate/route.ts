@@ -1,4 +1,4 @@
-import { fetchRewardsSheet, DeviceData } from '@/utils/sheet';
+import { fetchDataRewardsSheet, fetchBonusRewardsSheet, fetchPocRewardsSheet, DeviceData } from '@/utils/sheet';
 import { getCurrentEpoch, getRecentEpochs } from '@/utils/epoch';
 
 export async function GET(req: Request) {
@@ -8,9 +8,18 @@ export async function GET(req: Request) {
 
   if (!mac) return new Response('Missing MAC', { status: 400 });
 
-  const data = await fetchRewardsSheet();
-  const device = data.find((d) => d['MAC Address'] === mac);
-  if (!device) return new Response('Device not found', { status: 404 });
+  // Fetch all three reward types
+  const [dataRewards, bonusRewards, pocRewards] = await Promise.all([
+    fetchDataRewardsSheet(),
+    fetchBonusRewardsSheet(),
+    fetchPocRewardsSheet()
+  ]);
+
+  const dataDevice = dataRewards.find((d) => d['MAC Address'] === mac);
+  const bonusDevice = bonusRewards.find((d) => d['MAC Address'] === mac);
+  const pocDevice = pocRewards.find((d) => d['MAC Address'] === mac);
+  
+  if (!dataDevice) return new Response('Device not found', { status: 404 });
 
   // Get the list of recent epochs to aggregate
   const recentEpochs = getRecentEpochs(epochs);
@@ -18,15 +27,36 @@ export async function GET(req: Request) {
   // Create epoch keys in the format "Epoch X"
   const epochKeys = recentEpochs.map(ep => `Epoch ${ep}`);
 
-  const total = epochKeys.reduce((sum, key) => {
-    const numericValue = parseFloat(device[key] || '0');
-    return sum + (isNaN(numericValue) ? 0 : numericValue);
-  }, 0);
+  // Calculate all three reward types separately
+  let dataRewardsTotal = 0;
+  let bonusRewardsTotal = 0;
+  let pocRewardsTotal = 0;
+
+  epochKeys.forEach(key => {
+    // Data rewards (from the data rewards sheet)
+    const dataValue = parseFloat(dataDevice[key] || '0') || 0;
+    dataRewardsTotal += dataValue;
+
+    // Bonus rewards (from the bonus rewards sheet)
+    const bonusValue = parseFloat(bonusDevice?.[key] || '0') || 0;
+    bonusRewardsTotal += bonusValue;
+
+    // PoC rewards (from the PoC rewards sheet)
+    const pocValue = parseFloat(pocDevice?.[key] || '0') || 0;
+    pocRewardsTotal += pocValue;
+  });
+
+  const totalRewards = dataRewardsTotal + bonusRewardsTotal + pocRewardsTotal;
 
   return Response.json({
     mac,
     current_epoch: getCurrentEpoch(),
     epochs: epochKeys,
-    total_rewards: total
+    rewards: {
+      data_rewards: dataRewardsTotal,
+      bonus_rewards: bonusRewardsTotal,
+      poc_rewards: pocRewardsTotal,
+      total_rewards: totalRewards
+    }
   });
 }

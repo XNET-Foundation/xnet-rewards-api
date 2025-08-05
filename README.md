@@ -8,6 +8,7 @@ This is a simple API built with **Next.js (App Router)** , designed to serve tok
 
 - Query device rewards by MAC address and epoch
 - Supports full reward history or aggregation over recent epochs
+- **NEW**: Combined data rewards, bonus rewards, and PoC rewards in total calculations
 - Live connection to rewards sheets — no manual syncing required
 - Built with TypeScript + Google Sheets API
 
@@ -68,7 +69,8 @@ This script will:
 - Check if environment variables are set correctly
 - Test connection to Google Sheets API
 - Display available sheets and their GIDs
-- Attempt to read sample data
+- Test access to Data Rewards, Bonus Rewards, and PoC Rewards sheets
+- Attempt to read sample data from all three sheets
 
 If you encounter any issues, the script will provide detailed error information to help troubleshoot.
 
@@ -92,6 +94,21 @@ GET /api/rewards/aggregate?mac=MAC_ADDRESS&epochs=N
 /api/rewards/aggregate?mac=48bf74221270&epochs=4
 ```
 
+**Response:**
+```json
+{
+  "mac": "48bf74221270",
+  "current_epoch": 64,
+  "epochs": ["Epoch 61", "Epoch 62", "Epoch 63"],
+  "rewards": {
+    "data_rewards": 150.5,
+    "bonus_rewards": 25.0,
+    "poc_rewards": 10.5,
+    "total_rewards": 186.0
+  }
+}
+```
+
 ---
 
 ### 2. Specific Epoch Reward
@@ -104,6 +121,20 @@ GET /api/rewards/epoch?mac=MAC_ADDRESS&epoch=EPOCH_NUMBER
 
 ```
 /api/rewards/epoch?mac=48bf74221270&epoch=63
+```
+
+**Response:**
+```json
+{
+  "mac": "48bf74221270",
+  "epoch": "63",
+  "rewards": {
+    "data_rewards": 50.2,
+    "bonus_rewards": 8.3,
+    "poc_rewards": 1.5,
+    "total_rewards": 60.0
+  }
+}
 ```
 
 ---
@@ -120,6 +151,46 @@ GET /api/rewards/history?mac=MAC_ADDRESS
 /api/rewards/history?mac=48bf74221270
 ```
 
+**Response:**
+```json
+{
+  "mac": "48bf74221270",
+  "current_epoch": 64,
+  "history": {
+    "Epoch 61": {
+      "data_rewards": 45.1,
+      "bonus_rewards": 7.5,
+      "poc_rewards": 1.2,
+      "total_rewards": 53.8,
+      "distribution_date": "2024-01-15"
+    },
+    "Epoch 62": {
+      "data_rewards": 52.3,
+      "bonus_rewards": 9.2,
+      "poc_rewards": 1.8,
+      "total_rewards": 63.3,
+      "distribution_date": "2024-01-29"
+    }
+  }
+}
+```
+
+---
+
+## Reward Types
+
+The API now combines three types of rewards:
+
+1. **Data Rewards**: Primary rewards from data transmission (GID: 451580614)
+2. **Bonus Rewards**: Additional bonus rewards (GID: 425107781)
+3. **PoC Rewards**: Proof of Concept rewards (GID: 0)
+
+All endpoints return a breakdown showing:
+- `data_rewards`: Rewards from data transmission
+- `bonus_rewards`: Additional bonus rewards  
+- `poc_rewards`: Proof of Concept rewards
+- `total_rewards`: Combined total (data + bonus + poc)
+
 ---
 
 ## Live Demo
@@ -128,3 +199,15 @@ Example:
 ```
 https://domain.com/api/rewards/aggregate?mac=48bf74221270&epochs=3
 ```
+
+---
+
+## Testing
+
+Run the API test script to verify functionality:
+
+```bash
+npx ts-node scripts/test-api.ts
+```
+
+This will test all endpoints and show the new reward breakdown format with all three reward types.
