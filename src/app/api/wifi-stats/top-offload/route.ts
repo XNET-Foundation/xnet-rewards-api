@@ -10,6 +10,7 @@ interface TopOffloadDevice {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const limit = parseInt(searchParams.get('limit') || '10');
+  const epoch = searchParams.get('epoch');
 
   if (limit <= 0 || limit > 100) {
     return new Response('Limit must be between 1 and 100', { status: 400 });
@@ -17,10 +18,22 @@ export async function GET(req: Request) {
 
   try {
     const wifiStats = await fetchWifiStatsSheet();
-    const currentEpoch = getCurrentEpoch();
-    const epochKey = `Epoch ${currentEpoch}`;
+    
+    // Determine which epoch to use
+    let targetEpoch: number;
+    if (epoch) {
+      targetEpoch = parseInt(epoch);
+      if (isNaN(targetEpoch)) {
+        return new Response('Invalid epoch', { status: 400 });
+      }
+    } else {
+      // Use current_epoch - 1 for latest available data
+      targetEpoch = getCurrentEpoch() - 1;
+    }
 
-    // Find devices with WiFi stats for the current epoch
+    const epochKey = `Epoch ${targetEpoch}`;
+
+    // Find devices with WiFi stats for the target epoch
     const devicesWithStats: TopOffloadDevice[] = [];
 
     wifiStats.forEach(device => {
@@ -44,7 +57,8 @@ export async function GET(req: Request) {
       }));
 
     return Response.json({
-      current_epoch: currentEpoch,
+      current_epoch: getCurrentEpoch(),
+      target_epoch: targetEpoch,
       top_devices: topDevices
     });
 

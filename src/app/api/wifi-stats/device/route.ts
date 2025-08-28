@@ -39,23 +39,45 @@ export async function GET(req: Request) {
       targetEpoch = getCurrentEpoch();
     }
 
-    // For now, return basic structure - we'll need to examine the actual data format
-    // Each epoch has 6 columns: Sessions, Users, Rejects, Total GBs, Network Status, Location Status
+    // For WiFi Stats, each epoch has 6 columns starting from column F
+    // We need to find the correct column headers and map them
+    // Let's look for the data in the device object
     const epochKey = `Epoch ${targetEpoch}`;
     
-    // Extract available data for this epoch
-    const totalGbs = parseFloat(device[epochKey] || '0') || 0;
+    // Extract data - we'll need to examine the actual structure
+    // For now, let's try to find the data in the device object
+    let sessions = 0, users = 0, rejects = 0, totalGbs = 0;
+    let networkStatus = 'Unknown', locationStatus = 'Unknown';
+    
+    // Look for the data in the device object
+    Object.keys(device).forEach(key => {
+      if (key.includes(epochKey)) {
+        const value = device[key];
+        // Try to identify which column this is based on the value type
+        if (typeof value === 'string' && value.includes('Active')) {
+          networkStatus = value;
+        } else if (typeof value === 'string' && value.includes('Valid')) {
+          locationStatus = value;
+        } else if (!isNaN(parseFloat(value))) {
+          const numValue = parseFloat(value);
+          // Assume the largest number is total_gbs
+          if (numValue > totalGbs) {
+            totalGbs = numValue;
+          }
+        }
+      }
+    });
 
     const stats: DeviceWiFiStats = {
       mac,
       epoch: targetEpoch,
       stats: {
-        sessions: 0, // Will need to map to correct column
-        users: 0,    // Will need to map to correct column
-        rejects: 0,  // Will need to map to correct column
+        sessions,
+        users,
+        rejects,
         total_gbs: totalGbs,
-        network_status: 'Unknown', // Will need to map to correct column
-        location_status: 'Unknown' // Will need to map to correct column
+        network_status: networkStatus,
+        location_status: locationStatus
       }
     };
 
