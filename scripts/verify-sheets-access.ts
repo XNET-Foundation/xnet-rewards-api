@@ -13,6 +13,7 @@ const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const DATA_SHEET_GID = '451580614';
 const BONUS_SHEET_GID = '425107781';
 const POC_SHEET_GID = '0';
+const WIFI_STATS_SHEET_GID = '1785190906';
 
 async function verifyAccess() {
   console.log(chalk.blue('🔍 Starting Google Sheets Access Verification\n'));
@@ -75,9 +76,11 @@ async function verifyAccess() {
       const isDataTarget = sheet.properties?.sheetId?.toString() === DATA_SHEET_GID;
       const isBonusTarget = sheet.properties?.sheetId?.toString() === BONUS_SHEET_GID;
       const isPocTarget = sheet.properties?.sheetId?.toString() === POC_SHEET_GID;
+      const isWifiStatsTarget = sheet.properties?.sheetId?.toString() === WIFI_STATS_SHEET_GID;
       const targetIndicator = isDataTarget ? ' ← Data Rewards Target' : 
                             isBonusTarget ? ' ← Bonus Rewards Target' : 
-                            isPocTarget ? ' ← PoC Rewards Target' : '';
+                            isPocTarget ? ' ← PoC Rewards Target' : 
+                            isWifiStatsTarget ? ' ← WiFi Stats Target' : '';
       console.log(chalk.blue(`- ${sheet.properties?.title} (GID: ${sheet.properties?.sheetId})${targetIndicator}`));
     });
 
@@ -153,11 +156,35 @@ async function verifyAccess() {
       console.table(pocSheetData.data.values.slice(0, 3));
     }
 
+    // Test WiFi Stats sheet
+    console.log(chalk.cyan('\n--- Testing WiFi Stats Sheet ---'));
+    const wifiStatsTargetSheet = metadata.data.sheets?.find(
+      sheet => sheet.properties?.sheetId?.toString() === WIFI_STATS_SHEET_GID
+    );
+
+    if (!wifiStatsTargetSheet) {
+      throw new Error(`WiFi Stats sheet with GID ${WIFI_STATS_SHEET_GID} not found`);
+    }
+
+    const wifiStatsSheetData = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: `${wifiStatsTargetSheet.properties?.title}!A1:C5`
+    });
+
+    if (!wifiStatsSheetData.data.values || wifiStatsSheetData.data.values.length === 0) {
+      console.log(chalk.yellow('⚠️ WiFi Stats sheet is empty or no data in specified range'));
+    } else {
+      console.log(chalk.green(`✓ Successfully read ${wifiStatsSheetData.data.values.length} rows from WiFi Stats sheet`));
+      console.log(chalk.blue('Sample data (first 3 rows):'));
+      console.table(wifiStatsSheetData.data.values.slice(0, 3));
+    }
+
     console.log(chalk.green('\n✅ All verification steps completed successfully!'));
     console.log(chalk.blue('\n📊 Summary:'));
     console.log(chalk.blue(`- Data Rewards Sheet: ${dataTargetSheet.properties?.title} (GID: ${DATA_SHEET_GID})`));
     console.log(chalk.blue(`- Bonus Rewards Sheet: ${bonusTargetSheet.properties?.title} (GID: ${BONUS_SHEET_GID})`));
     console.log(chalk.blue(`- PoC Rewards Sheet: ${pocTargetSheet.properties?.title} (GID: ${POC_SHEET_GID})`));
+    console.log(chalk.blue(`- WiFi Stats Sheet: ${wifiStatsTargetSheet.properties?.title} (GID: ${WIFI_STATS_SHEET_GID})`));
     console.log(chalk.blue('- All sheets are accessible and ready for API integration'));
     
   } catch (error: any) {

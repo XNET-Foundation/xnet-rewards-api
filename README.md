@@ -95,6 +95,7 @@ GET /api/rewards/aggregate?mac=MAC_ADDRESS&epochs=N
 ```
 
 **Response:**
+
 ```json
 {
   "mac": "48bf74221270",
@@ -124,6 +125,7 @@ GET /api/rewards/epoch?mac=MAC_ADDRESS&epoch=EPOCH_NUMBER
 ```
 
 **Response:**
+
 ```json
 {
   "mac": "48bf74221270",
@@ -152,6 +154,7 @@ GET /api/rewards/history?mac=MAC_ADDRESS
 ```
 
 **Response:**
+
 ```json
 {
   "mac": "48bf74221270",
@@ -174,6 +177,73 @@ GET /api/rewards/history?mac=MAC_ADDRESS
   }
 }
 ```
+
+---
+
+### 4. Top Offload Devices
+
+```
+GET /api/wifi-stats/top-offload?limit=N
+```
+
+**Example:**
+
+```
+/api/wifi-stats/top-offload?limit=10
+```
+
+**Response:**
+
+```json
+{
+  "current_epoch": 72,
+  "top_devices": [
+    {
+      "mac": "0ca138000eaa",
+      "total_gbs": 2034.456,
+      "rank": 1
+    },
+    {
+      "mac": "device2",
+      "total_gbs": 1950.0,
+      "rank": 2
+    }
+  ]
+}
+```
+
+---
+
+### 5. Device WiFi Stats
+
+```
+GET /api/wifi-stats/device?mac=MAC_ADDRESS&epoch=EPOCH_NUMBER
+```
+
+**Example:**
+
+```
+/api/wifi-stats/device?mac=0ca138000eaa&epoch=71
+```
+
+**Response:**
+
+```json
+{
+  "mac": "0ca138000eaa",
+  "epoch": 71,
+  "stats": {
+    "sessions": 150,
+    "users": 45,
+    "rejects": 2,
+    "total_gbs": 2034.456,
+    "network_status": "Active",
+    "location_status": "Valid"
+  }
+}
+```
+
+**Note:** If no epoch is specified, the latest epoch will be used automatically.
 
 ---
 

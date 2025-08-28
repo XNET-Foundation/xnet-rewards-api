@@ -38,12 +38,14 @@ const SHEET_ID = process.env.GOOGLE_SHEET_ID!;
 const DATA_SHEET_GID = '451580614'; // Data Rewards sheet
 const BONUS_SHEET_GID = '425107781'; // Bonus Rewards sheet
 const POC_SHEET_GID = '0'; // PoC Rewards sheet
+const WIFI_STATS_SHEET_GID = '1785190906'; // WiFi Stats sheet
 
 console.log('Sheet configuration:', {
   sheetId: SHEET_ID,
   dataSheetGid: DATA_SHEET_GID,
   bonusSheetGid: BONUS_SHEET_GID,
   pocSheetGid: POC_SHEET_GID,
+  wifiStatsSheetGid: WIFI_STATS_SHEET_GID,
   credentialsExist: !!CREDENTIALS_PATH,
   currentWorkingDirectory: process.cwd(),
   usingVercelGCP: !!process.env.GCP_PRIVATE_KEY,
@@ -135,5 +137,10 @@ export async function fetchBonusRewardsSheet(): Promise<DeviceData[]> {
 // Fetch PoC rewards sheet
 export async function fetchPocRewardsSheet(): Promise<DeviceData[]> {
   return fetchSheetByGid(POC_SHEET_GID, 'PoC Rewards');
+}
+
+// Fetch WiFi Stats sheet
+export async function fetchWifiStatsSheet(): Promise<DeviceData[]> {
+  return fetchSheetByGid(WIFI_STATS_SHEET_GID, 'WiFi Stats');
 }
 
