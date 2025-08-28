@@ -12,7 +12,7 @@ console.log('Initializing Google Sheets with credentials path:', path.resolve(pr
 function getGoogleAuth() {
   // Check if we're on Vercel (GCP integration)
   if (process.env.GCP_PRIVATE_KEY) {
-    console.log('Using Vercel GCP integration credentials');
+    console.log('🔐 Using Vercel GCP Integration');
     return new google.auth.GoogleAuth({
       credentials: {
         client_email: process.env.GCP_SERVICE_ACCOUNT_EMAIL,
@@ -23,7 +23,7 @@ function getGoogleAuth() {
     });
   } else {
     // Fall back to local file-based authentication
-    console.log('Using local file-based credentials');
+    console.log('🔑 Using Local Secret File');
     return new google.auth.GoogleAuth({
       keyFile: path.resolve(process.cwd(), CREDENTIALS_PATH),
       scopes: SCOPES,
