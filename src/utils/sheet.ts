@@ -8,11 +8,30 @@ const CREDENTIALS_PATH = process.env.GOOGLE_CREDENTIALS_PATH || 'secrets/xnet-re
 
 console.log('Initializing Google Sheets with credentials path:', path.resolve(process.cwd(), CREDENTIALS_PATH));
 
-const auth = new google.auth.GoogleAuth({
-  keyFile: path.resolve(process.cwd(), CREDENTIALS_PATH),
-  scopes: SCOPES,
-});
+// Hybrid authentication function
+function getGoogleAuth() {
+  // Check if we're on Vercel (GCP integration)
+  if (process.env.GCP_PRIVATE_KEY) {
+    console.log('Using Vercel GCP integration credentials');
+    return new google.auth.GoogleAuth({
+      credentials: {
+        client_email: process.env.GCP_SERVICE_ACCOUNT_EMAIL,
+        private_key: process.env.GCP_PRIVATE_KEY.replace(/\\n/g, '\n'), // Handle escaped newlines
+      },
+      projectId: process.env.GCP_PROJECT_ID,
+      scopes: SCOPES,
+    });
+  } else {
+    // Fall back to local file-based authentication
+    console.log('Using local file-based credentials');
+    return new google.auth.GoogleAuth({
+      keyFile: path.resolve(process.cwd(), CREDENTIALS_PATH),
+      scopes: SCOPES,
+    });
+  }
+}
 
+const auth = getGoogleAuth();
 const sheets = google.sheets({ version: 'v4', auth });
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID!;
@@ -27,6 +46,7 @@ console.log('Sheet configuration:', {
   pocSheetGid: POC_SHEET_GID,
   credentialsExist: !!CREDENTIALS_PATH,
   currentWorkingDirectory: process.cwd(),
+  usingVercelGCP: !!process.env.GCP_PRIVATE_KEY,
 });
 
 export interface DeviceData {
