@@ -141,6 +141,112 @@ export async function fetchPocRewardsSheet(): Promise<DeviceData[]> {
 
 // Fetch WiFi Stats sheet
 export async function fetchWifiStatsSheet(): Promise<DeviceData[]> {
-  return fetchSheetByGid(WIFI_STATS_SHEET_GID, 'WiFi Stats');
+  try {
+    console.log('Fetching WiFi Stats sheet with GID:', WIFI_STATS_SHEET_GID);
+    
+    // Get the sheet metadata to verify access
+    const metadataResponse = await sheets.spreadsheets.get({
+      spreadsheetId: SHEET_ID,
+    });
+    
+    // Find the sheet by GID
+    const targetSheet = metadataResponse.data.sheets?.find(
+      sheet => sheet.properties?.sheetId?.toString() === WIFI_STATS_SHEET_GID
+    );
+
+    if (!targetSheet?.properties?.title) {
+      throw new Error(`WiFi Stats sheet with GID ${WIFI_STATS_SHEET_GID} not found`);
+    }
+
+    console.log('Found WiFi Stats sheet:', {
+      title: targetSheet.properties.title,
+      gid: targetSheet.properties.sheetId,
+      rowCount: targetSheet.properties.gridProperties?.rowCount,
+      columnCount: targetSheet.properties.gridProperties?.columnCount,
+    });
+
+    // Fetch the sheet data
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: targetSheet.properties.title,
+    });
+
+    const data = response.data;
+    console.log('WiFi Stats sheet data response:', {
+      hasValues: !!data.values,
+      rowCount: data.values?.length,
+      columnCount: data.values?.[0]?.length,
+    });
+
+    if (!data.values || data.values.length < 3) {
+      throw new Error('WiFi Stats sheet must have at least 3 rows (epoch headers, metric headers, and data)');
+    }
+
+    // WiFi Stats has a two-row header structure:
+    // Row 0: Epoch headers (e.g., " Epoch 71 ")
+    // Row 1: Metric headers (e.g., "# Sessions", "# Users", etc.)
+    // Row 2+: Actual device data
+    const [epochHeaders, metricHeaders, ...deviceRows] = data.values;
+
+    // Create a mapping of epoch positions to their metric columns
+    const epochMetricMapping: { [epochKey: string]: { startIndex: number; metrics: string[] } } = {};
+    
+    for (let i = 0; i < epochHeaders.length; i++) {
+      const epochHeader = epochHeaders[i]?.toString().trim() || '';
+      if (epochHeader.includes('Epoch')) {
+        // Find the next 6 columns for this epoch
+        const metrics = [];
+        for (let j = 0; j < 6 && i + j < metricHeaders.length; j++) {
+          const metricHeader = metricHeaders[i + j]?.toString().trim() || '';
+          metrics.push(metricHeader);
+        }
+        
+        epochMetricMapping[epochHeader] = {
+          startIndex: i,
+          metrics: metrics
+        };
+      }
+    }
+
+    console.log('Epoch metric mapping:', epochMetricMapping);
+
+    // Process device rows
+    return deviceRows.map((row: any[], rowIndex: number) => {
+      const obj: DeviceData = { 'MAC Address': '' };
+      
+      // First, handle the MAC Address column (should be in one of the first few columns)
+      const macIndex = epochHeaders.findIndex((h: string) => h?.toString().includes('MAC Address'));
+      if (macIndex >= 0 && row[macIndex]) {
+        obj['MAC Address'] = row[macIndex].toString().trim();
+      }
+
+      // Then, map epoch data using the two-row header structure
+      Object.entries(epochMetricMapping).forEach(([epochHeader, mapping]) => {
+        // Create epoch-specific keys for each metric
+        mapping.metrics.forEach((metric, metricIndex) => {
+          if (metric && metric.trim() !== '') {
+            const columnIndex = mapping.startIndex + metricIndex;
+            const value = row[columnIndex]?.toString() || '';
+            
+            // Create epoch-specific metric keys (e.g., "Epoch 71 # Sessions")
+            const epochMetricKey = `${epochHeader.trim()} ${metric.trim()}`;
+            obj[epochMetricKey] = metric.includes('GBs') || metric.includes('Sessions') || metric.includes('Users') || metric.includes('Rejects') 
+              ? cleanNumberString(value) 
+              : value.trim();
+          }
+        });
+      });
+
+      return obj;
+    });
+  } catch (error: any) {
+    console.error('Error fetching WiFi Stats sheet:', {
+      message: error.message,
+      status: error.status,
+      code: error.code,
+      gid: WIFI_STATS_SHEET_GID,
+    });
+    throw error;
+  }
 }
 

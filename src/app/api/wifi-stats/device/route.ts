@@ -27,7 +27,6 @@ export async function GET(req: Request) {
     
     if (!device) return new Response('Device not found', { status: 404 });
 
-    // Determine which epoch to use
     let targetEpoch: number;
     if (epoch) {
       targetEpoch = parseInt(epoch);
@@ -35,39 +34,51 @@ export async function GET(req: Request) {
         return new Response('Invalid epoch', { status: 400 });
       }
     } else {
-      // Use latest epoch if none specified
       targetEpoch = getCurrentEpoch();
     }
 
-    // For WiFi Stats, each epoch has 6 columns starting from column F
-    // We need to find the correct column headers and map them
-    // Let's look for the data in the device object
+    // The new data structure has epochs as direct keys
     const epochKey = `Epoch ${targetEpoch}`;
+    console.log(`🔍 Looking for epoch key: "${epochKey}"`);
     
-    // Extract data - we'll need to examine the actual structure
-    // For now, let's try to find the data in the device object
-    let sessions = 0, users = 0, rejects = 0, totalGbs = 0;
-    let networkStatus = 'Unknown', locationStatus = 'Unknown';
+    // Check if the device has data for this epoch by looking for epoch-specific metric keys
+    const epochMetricKeys = Object.keys(device).filter(key => key.startsWith(epochKey));
+    console.log(`🔍 Found epoch metric keys:`, epochMetricKeys);
     
-    // Look for the data in the device object
-    Object.keys(device).forEach(key => {
-      if (key.includes(epochKey)) {
-        const value = device[key];
-        // Try to identify which column this is based on the value type
-        if (typeof value === 'string' && value.includes('Active')) {
-          networkStatus = value;
-        } else if (typeof value === 'string' && value.includes('Valid')) {
-          locationStatus = value;
-        } else if (!isNaN(parseFloat(value))) {
-          const numValue = parseFloat(value);
-          // Assume the largest number is total_gbs
-          if (numValue > totalGbs) {
-            totalGbs = numValue;
-          }
+    if (epochMetricKeys.length === 0) {
+      console.log(`❌ Epoch ${targetEpoch} not found in device data`);
+      return Response.json({
+        mac,
+        epoch: targetEpoch,
+        stats: {
+          sessions: 0,
+          users: 0,
+          rejects: 0,
+          total_gbs: 0,
+          network_status: 'Unknown',
+          location_status: 'Unknown'
         }
-      }
-    });
+      });
+    }
 
+    console.log(`✅ Epoch ${targetEpoch} found in device data`);
+    
+    // Extract the metrics for this epoch using epoch-specific keys
+    const sessions = parseFloat(device[`${epochKey} # Sessions`] || '0') || 0;
+    const users = parseFloat(device[`${epochKey} # Users`] || '0') || 0;
+    const rejects = parseFloat(device[`${epochKey} # Rejects`] || '0') || 0;
+    const totalGbs = parseFloat(device[`${epochKey} Total GBs`] || '0') || 0;
+    const networkStatus = device[`${epochKey} Network Status`] || 'Unknown';
+    const locationStatus = device[`${epochKey} Location Status`] || 'Unknown';
+
+    console.log(`🔍 Extracted values:`);
+    console.log(`  Sessions: ${sessions}`);
+    console.log(`  Users: ${users}`);
+    console.log(`  Rejects: ${rejects}`);
+    console.log(`  Total GBs: ${totalGbs}`);
+    console.log(`  Network Status: ${networkStatus}`);
+    console.log(`  Location Status: ${locationStatus}`);
+    
     const stats: DeviceWiFiStats = {
       mac,
       epoch: targetEpoch,
