@@ -4,11 +4,17 @@ const GENESIS_EPOCH_BEGIN_DATE = new Date("2022-11-14T08:00:00.000Z");
 // Time an epoch lasts (2 weeks)
 const EPOCH_INTERVAL_MS = 14 * 24 * 60 * 60 * 1000;
 
+// Payout delay: epochs are not available in API until 4 days after they end
+const PAYOUT_DELAY_MS = 4 * 24 * 60 * 60 * 1000;
+
 /**
- * Get the most recently completed epoch number
+ * Get the most recently completed epoch number (accounting for payout delay)
  */
-export const getLastEpoch = () =>
-  Math.floor((new Date().getTime() - GENESIS_EPOCH_BEGIN_DATE.getTime()) / EPOCH_INTERVAL_MS) - 1;
+export const getLastEpoch = () => {
+  const now = new Date().getTime();
+  const adjustedTime = now - PAYOUT_DELAY_MS;
+  return Math.floor((adjustedTime - GENESIS_EPOCH_BEGIN_DATE.getTime()) / EPOCH_INTERVAL_MS) - 1;
+};
 
 /**
  * Get the current (uncompleted) epoch number
