@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XNET Rewards API</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f6f7f9;
+            --panel: #ffffff;
+            --text: #111827;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --soft: #f3f4f6;
+            --primary: #16a34a;
+            --success: #16a34a;
+            --radius: 12px;
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            background: var(--bg);
+            color: var(--text);
+            padding: 16px;
+        }
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .header {
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+        .header h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+        .header p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+        .content { padding: 18px; }
+        .section { margin-bottom: 18px; }
+        .section:last-child { margin-bottom: 0; }
+        .section h2 {
+            margin: 0 0 10px;
+            font-size: 13px;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .form-group { margin-bottom: 12px; }
+        .form-row .form-group { flex: 1; min-width: 180px; }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            background: white;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: rgba(37, 99, 235, 0.7);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+        }
+        .button {
+            appearance: none;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+            padding: 9px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        .button:hover { filter: brightness(0.97); }
+        .button:active { filter: brightness(0.94); }
+        .button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .button.info { background: var(--soft); color: var(--text); border: 1px solid var(--border); }
+        .result {
+            display: none;
+            margin-top: 12px;
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            background: white;
+            font-size: 13px;
+        }
+        .result.success { border-color: rgba(22,163,74,0.35); background: rgba(22,163,74,0.08); }
+        .result.error { border-color: rgba(220,38,38,0.35); background: rgba(220,38,38,0.08); }
+        .result.info { border-color: rgba(37,99,235,0.35); background: rgba(37,99,235,0.08); }
+        .loading {
+            display: none;
+            margin: 10px 0;
+            padding: 10px 12px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+        .spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid rgba(17,24,39,0.15);
+            border-top-color: rgba(17,24,39,0.5);
+            border-radius: 999px;
+            animation: spin 0.8s linear infinite;
+            vertical-align: -2px;
+            margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .summary-card {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: white;
+        }
+        .summary-card .value { font-size: 16px; font-weight: 800; }
+        .summary-card .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .endpoint-tabs {
+            display: flex;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--soft);
+            margin-bottom: 12px;
+        }
+        .endpoint-tabs button {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 10px 12px;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--muted);
+            cursor: pointer;
+        }
+        .endpoint-tabs button.active { background: white; color: var(--text); }
+        .pane { display: none; }
+        .pane.active { display: block; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; }
+        .muted { color: var(--muted); font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>XNET Rewards API</h1>
+            <p>Query device rewards, history, and WiFi stats</p>
+        </div>
+        <div class="content">
+            <div class="section">
+                <h2>API Configuration</h2>
+                <div class="form-group">
+                    <label for="apiUrl">API Base URL</label>
+                    <input type="url" id="apiUrl" value="https://api.devmesh.xyz" placeholder="https://api.devmesh.xyz">
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Endpoints</h2>
+                <div class="endpoint-tabs">
+                    <button type="button" class="active" data-pane="aggregate">Aggregate</button>
+                    <button type="button" data-pane="epoch">Epoch</button>
+                    <button type="button" data-pane="history">History</button>
+                    <button type="button" data-pane="wifi-device">WiFi Device</button>
+                    <button type="button" data-pane="top-offload">Top Offload</button>
+                </div>
+
+                <!-- Aggregate -->
+                <div class="pane active" id="pane-aggregate">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="aggMac">MAC Address</label>
+                            <input type="text" id="aggMac" placeholder="48bf74221270">
+                        </div>
+                        <div class="form-group" style="max-width: 120px;">
+                            <label for="aggEpochs">Epochs</label>
+                            <input type="number" id="aggEpochs" value="3" min="1" max="20">
+                        </div>
+                    </div>
+                    <button class="button" onclick="callAggregate()">Get Aggregate</button>
+                </div>
+
+                <!-- Epoch -->
+                <div class="pane" id="pane-epoch">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="epochMac">MAC Address</label>
+                            <input type="text" id="epochMac" placeholder="48bf74221270">
+                        </div>
+                        <div class="form-group" style="max-width: 120px;">
+                            <label for="epochNum">Epoch</label>
+                            <input type="number" id="epochNum" placeholder="63">
+                        </div>
+                    </div>
+                    <button class="button" onclick="callEpoch()">Get Epoch</button>
+                </div>
+
+                <!-- History -->
+                <div class="pane" id="pane-history">
+                    <div class="form-group">
+                        <label for="histMac">MAC Address(es)</label>
+                        <input type="text" id="histMac" placeholder="48bf74221270 or mac1,mac2,mac3">
+                    </div>
+                    <button class="button" onclick="callHistory()">Get History</button>
+                </div>
+
+                <!-- WiFi Device -->
+                <div class="pane" id="pane-wifi-device">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="wifiMac">MAC Address</label>
+                            <input type="text" id="wifiMac" placeholder="0ca138000eaa">
+                        </div>
+                        <div class="form-group" style="max-width: 120px;">
+                            <label for="wifiEpoch">Epoch (optional)</label>
+                            <input type="number" id="wifiEpoch" placeholder="Current">
+                        </div>
+                    </div>
+                    <button class="button" onclick="callWifiDevice()">Get WiFi Stats</button>
+                </div>
+
+                <!-- Top Offload -->
+                <div class="pane" id="pane-top-offload">
+                    <div class="form-row">
+                        <div class="form-group" style="max-width: 120px;">
+                            <label for="topLimit">Limit</label>
+                            <input type="number" id="topLimit" value="10" min="1" max="100">
+                        </div>
+                        <div class="form-group" style="max-width: 120px;">
+                            <label for="topEpoch">Epoch (optional)</label>
+                            <input type="number" id="topEpoch" placeholder="Last">
+                        </div>
+                    </div>
+                    <button class="button" onclick="callTopOffload()">Get Top Offload</button>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <span class="spinner"></span>
+                <span id="loadingText">Loading...</span>
+            </div>
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE = () => document.getElementById('apiUrl').value.replace(/\/$/, '');
+        const showLoading = (show, text = 'Loading...') => {
+            const el = document.getElementById('loading');
+            el.style.display = show ? 'block' : 'none';
+            el.querySelector('#loadingText').textContent = text;
+        };
+        const showResult = (html, type = 'info') => {
+            const el = document.getElementById('result');
+            el.innerHTML = html;
+            el.className = 'result ' + type;
+            el.style.display = 'block';
+        };
+        const showError = (msg) => showResult(escapeHtml(msg), 'error');
+        const escapeHtml = (s) => {
+            const d = document.createElement('div');
+            d.textContent = String(s ?? '');
+            return d.innerHTML;
+        };
+
+        document.querySelectorAll('.endpoint-tabs button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.endpoint-tabs button').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('pane-' + btn.dataset.pane).classList.add('active');
+            });
+        });
+
+        async function api(path) {
+            const res = await fetch(BASE() + path);
+            const text = await res.text();
+            let data = null;
+            try { data = JSON.parse(text); } catch (_) {}
+            if (!res.ok) {
+                throw new Error(data?.message || data?.error || text || res.statusText || 'Request failed');
+            }
+            return data;
+        }
+
+        async function callAggregate() {
+            const mac = document.getElementById('aggMac').value.trim();
+            const epochs = document.getElementById('aggEpochs').value || '3';
+            if (!mac) { showError('MAC address is required'); return; }
+            showLoading(true);
+            try {
+                const d = await api(`/api/rewards/aggregate?mac=${encodeURIComponent(mac)}&epochs=${epochs}`);
+                const r = d.rewards || {};
+                showResult(`
+                    <strong>${escapeHtml(d.mac)}</strong> · Current Epoch ${d.current_epoch}
+                    <div class="summary-cards" style="margin-top:10px">
+                        <div class="summary-card"><div class="value">${r.data_rewards ?? 0}</div><div class="label">Data</div></div>
+                        <div class="summary-card"><div class="value">${r.bonus_rewards ?? 0}</div><div class="label">Bonus</div></div>
+                        <div class="summary-card"><div class="value">${r.poc_rewards ?? 0}</div><div class="label">PoC</div></div>
+                        <div class="summary-card"><div class="value">${r.total_rewards ?? 0}</div><div class="label">Total</div></div>
+                    </div>
+                    <div class="muted" style="margin-top:8px">Epochs: ${(d.epochs || []).join(', ')}</div>
+                `, 'success');
+            } catch (e) {
+                showError(e.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function callEpoch() {
+            const mac = document.getElementById('epochMac').value.trim();
+            const epoch = document.getElementById('epochNum').value.trim();
+            if (!mac || !epoch) { showError('MAC and epoch are required'); return; }
+            showLoading(true);
+            try {
+                const d = await api(`/api/rewards/epoch?mac=${encodeURIComponent(mac)}&epoch=${epoch}`);
+                const r = d.rewards || {};
+                showResult(`
+                    <strong>${escapeHtml(d.mac)}</strong> · Epoch ${d.epoch}
+                    <div class="summary-cards" style="margin-top:10px">
+                        <div class="summary-card"><div class="value">${r.data_rewards ?? 0}</div><div class="label">Data</div></div>
+                        <div class="summary-card"><div class="value">${r.bonus_rewards ?? 0}</div><div class="label">Bonus</div></div>
+                        <div class="summary-card"><div class="value">${r.poc_rewards ?? 0}</div><div class="label">PoC</div></div>
+                        <div class="summary-card"><div class="value">${r.total_rewards ?? 0}</div><div class="label">Total</div></div>
+                    </div>
+                `, 'success');
+            } catch (e) {
+                showError(e.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function callHistory() {
+            const mac = document.getElementById('histMac').value.trim();
+            if (!mac) { showError('MAC address(es) required'); return; }
+            showLoading(true);
+            try {
+                const d = await api(`/api/rewards/history?mac=${encodeURIComponent(mac)}`);
+                const items = Array.isArray(d) ? d : [d];
+                let html = '';
+                items.forEach(item => {
+                    const h = item.history || {};
+                    const entries = Object.entries(h)
+                        .sort((a, b) => parseInt(b[0].replace(/\D/g, '')) - parseInt(a[0].replace(/\D/g, '')))
+                        .slice(0, 15);
+                    html += `<div style="margin-bottom:14px"><strong>${escapeHtml(item.mac)}</strong> · Epoch ${item.current_epoch}<br>`;
+                    html += '<div class="summary-cards" style="margin-top:8px">';
+                    entries.forEach(([ep, v]) => {
+                        html += `<div class="summary-card"><div class="value">${(v.total_rewards ?? 0).toFixed(2)}</div><div class="label">${escapeHtml(ep)}</div></div>`;
+                    });
+                    html += '</div></div>';
+                });
+                showResult(html || 'No history', 'success');
+            } catch (e) {
+                showError(e.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function callWifiDevice() {
+            const mac = document.getElementById('wifiMac').value.trim();
+            const epoch = document.getElementById('wifiEpoch').value.trim();
+            if (!mac) { showError('MAC address required'); return; }
+            showLoading(true);
+            try {
+                let path = `/api/wifi-stats/device?mac=${encodeURIComponent(mac)}`;
+                if (epoch) path += `&epoch=${epoch}`;
+                const d = await api(path);
+                const s = d.stats || {};
+                showResult(`
+                    <strong>${escapeHtml(d.mac)}</strong> · Epoch ${d.epoch}
+                    <div class="summary-cards" style="margin-top:10px">
+                        <div class="summary-card"><div class="value">${s.sessions ?? 0}</div><div class="label">Sessions</div></div>
+                        <div class="summary-card"><div class="value">${s.users ?? 0}</div><div class="label">Users</div></div>
+                        <div class="summary-card"><div class="value">${s.rejects ?? 0}</div><div class="label">Rejects</div></div>
+                        <div class="summary-card"><div class="value">${(s.total_gbs ?? 0).toFixed(2)}</div><div class="label">Total GBs</div></div>
+                        <div class="summary-card"><div class="value">${escapeHtml(s.network_status ?? '-')}</div><div class="label">Network</div></div>
+                        <div class="summary-card"><div class="value">${escapeHtml(s.location_status ?? '-')}</div><div class="label">Location</div></div>
+                    </div>
+                `, 'success');
+            } catch (e) {
+                showError(e.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function callTopOffload() {
+            const limit = document.getElementById('topLimit').value || '10';
+            const epoch = document.getElementById('topEpoch').value.trim();
+            showLoading(true);
+            try {
+                let path = `/api/wifi-stats/top-offload?limit=${limit}`;
+                if (epoch) path += `&epoch=${epoch}`;
+                const d = await api(path);
+                const devices = d.top_devices || [];
+                let html = `<strong>Epoch ${d.target_epoch}</strong> (current: ${d.current_epoch})<br><br>`;
+                if (devices.length === 0) html += '<span class="muted">No devices</span>';
+                else {
+                    html += '<div style="display:grid;gap:6px">';
+                    devices.forEach(dev => {
+                        html += `<div class="mono" style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>#${dev.rank} ${escapeHtml(dev.mac)}</span><span>${(dev.total_gbs ?? 0).toFixed(2)} GB</span></div>`;
+                    });
+                    html += '</div>';
+                }
+                showResult(html, 'success');
+            } catch (e) {
+                showError(e.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+    </script>
+</body>
+</html>
