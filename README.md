@@ -262,6 +262,33 @@ GET /api/wifi-stats/device?mac=MAC_ADDRESS&epoch=EPOCH_NUMBER
 }
 ```
 
+#### 6. Available Radio IDs
+
+```
+GET /api/wifi-stats/radio-ids
+```
+
+**Description:**
+- Returns all unique, non-empty radio IDs (MAC addresses) available in the WiFi Stats sheet
+
+**Example:**
+
+```
+/api/wifi-stats/radio-ids
+```
+
+**Response:**
+
+```json
+{
+  "count": 2,
+  "radio_ids": [
+    "0ca138000eaa",
+    "48bf74221270"
+  ]
+}
+```
+
 **WiFi Stats Metrics:**
 - `sessions`: Number of WiFi sessions
 - `users`: Number of unique users connected
